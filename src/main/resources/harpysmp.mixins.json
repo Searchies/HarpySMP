@@ -4,10 +4,6 @@
   "package": "org.agmas.harpysmp.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AsferiaCollisionMixin",
-    "AsferiaGiveCommandMixin",
-    "AsferiaItemEntityMixin",
-    "AsferiaTPCommandMixin",
     "ColorPlayerListNameMixin",
     "PlayerDisplayNameMixin"
   ],

@@ -4,23 +4,23 @@
   "version": "${version}",
   "name": "HarpySMP",
   "description": "",
-  "authors": [],
+  "authors": ["agmass", "Searchies"],
   "contact": {},
   "license": "LGPL-3.0",
   "icon": "assets/harpysmp/icon.png",
   "environment": "*",
   "entrypoints": {
     "fabric-datagen": [
-      "org.agmas.harpysmp.client.HarpysmpDataGenerator"
+      "org.agmas.harpysmp.client.HarpySMPDataGenerator"
     ],
     "client": [
-      "org.agmas.harpysmp.client.HarpysmpClient"
+      "org.agmas.harpysmp.client.HarpySMPClient"
     ],
     "cardinal-components": [
       "org.agmas.harpysmp.components.HarpySMPComponents"
     ],
     "main": [
-      "org.agmas.harpysmp.Harpysmp"
+      "org.agmas.harpysmp.HarpySMP"
     ]
   },
 

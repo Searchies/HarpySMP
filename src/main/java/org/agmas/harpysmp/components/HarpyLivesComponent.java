@@ -7,7 +7,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.TeleportTarget;
-import org.agmas.harpysmp.Harpysmp;
+import org.agmas.harpysmp.HarpySMP;
 import org.jetbrains.annotations.NotNull;
 import org.ladysnake.cca.api.v3.component.ComponentKey;
 import org.ladysnake.cca.api.v3.component.ComponentRegistry;
@@ -16,22 +16,42 @@ import org.ladysnake.cca.api.v3.component.tick.ServerTickingComponent;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 public class HarpyLivesComponent implements AutoSyncedComponent, ServerTickingComponent {
-    public static final ComponentKey<HarpyLivesComponent> KEY = ComponentRegistry.getOrCreate(Identifier.of(Harpysmp.MOD_ID, "lives"), HarpyLivesComponent.class);
+    public static final ComponentKey<HarpyLivesComponent> KEY = ComponentRegistry.getOrCreate(Identifier.of(HarpySMP.MOD_ID, "lives"), HarpyLivesComponent.class);
     private final PlayerEntity player;
+
     public long graceTime = Date.from(Instant.now().plus(7, ChronoUnit.DAYS)).getTime();
     public int lives = 4;
     public String nickname = null;
     public boolean invisible = false;
 
+    public Map<UUID, Integer> refundableLives = new HashMap<>();
+
     public void reset() {
         this.lives = 4;
+        this.refundableLives.clear();
         this.sync();
+    }
+
+    public void addRefundableLife(UUID victim) {
+        this.refundableLives.put(victim, this.refundableLives.getOrDefault(victim, 0) + 1);
+        this.sync();
+    }
+
+    public boolean consumeRefundableLife(UUID victim) {
+        int current = this.refundableLives.getOrDefault(victim, 0);
+        if (current > 0) {
+            if (current == 1) {
+                this.refundableLives.remove(victim);
+            } else {
+                this.refundableLives.put(victim, current - 1);
+            }
+            this.sync();
+            return true;
+        }
+        return false;
     }
 
     public HarpyLivesComponent(PlayerEntity player) {
@@ -54,19 +74,22 @@ public class HarpyLivesComponent implements AutoSyncedComponent, ServerTickingCo
                 ((ServerPlayerEntity) player).teleport(target.world(), target.pos().x, target.pos().y, target.pos().z, target.yaw(), target.pitch());
             }
         }
-        if (!player.getUuid().equals(UUID.fromString(Harpysmp.ASFERIA_UUID))) {
-            invisible = false;
-        }
-        sync();
     }
 
     public void writeToNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
         tag.putInt("lives", this.lives);
         tag.putLong("graceTime", this.graceTime);
         tag.putBoolean("invisible", this.invisible);
+
         if (nickname != null) {
             tag.putString("nickName", nickname);
         }
+
+        NbtCompound refundsTag = new NbtCompound();
+        for (Map.Entry<UUID, Integer> entry : this.refundableLives.entrySet()) {
+            refundsTag.putInt(entry.getKey().toString(), entry.getValue());
+        }
+        tag.put("RefundableLives", refundsTag);
     }
 
     public void readFromNbt(@NotNull NbtCompound tag, RegistryWrapper.WrapperLookup registryLookup) {
@@ -78,6 +101,17 @@ public class HarpyLivesComponent implements AutoSyncedComponent, ServerTickingCo
         } else {
             nickname = tag.getString("nickName");
         }
-    }
 
+        this.refundableLives.clear();
+        if (tag.contains("RefundableLives")) {
+            NbtCompound refundsTag = tag.getCompound("RefundableLives");
+            for (String key : refundsTag.getKeys()) {
+                try {
+                    this.refundableLives.put(UUID.fromString(key), refundsTag.getInt(key));
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid UUIDs
+                }
+            }
+        }
+    }
 }
