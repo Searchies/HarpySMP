@@ -1,7 +1,6 @@
 package org.agmas.harpysmp.command;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -99,6 +98,7 @@ public class Commands {
         int grace = IntegerArgumentType.getInteger(context, "seconds");
 
         HarpyLivesComponent.KEY.get(entity).graceTime = Date.from(Instant.now().plus(grace, ChronoUnit.SECONDS)).getTime();
+        HarpyLivesComponent.KEY.get(entity).sync();
         return 1;
     }
 
@@ -110,7 +110,7 @@ public class Commands {
         HarpyLivesComponent.KEY.get(context.getSource().getPlayer()).sync();
 
         for (ServerPlayerEntity player : context.getSource().getPlayer().getServer().getPlayerManager().getPlayerList()) {
-            player.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, (ServerPlayerEntity) context.getSource().getPlayer()));
+            player.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, context.getSource().getPlayer()));
         }
 
         return 1;
@@ -164,11 +164,12 @@ public class Commands {
             context.getSource().sendError(Text.literal("You have no lives to refund to anyone"));
         }
 
-        context.getSource().sendMessage(Text.literal(player.getName().toString() + " refundable lives: "));
+        context.getSource().sendMessage(Text.literal(player.getStyledDisplayName().getString() + " refundable lives:" +
+                " "));
         component.refundableLives.forEach((uuid, lives) -> {
             String displayName = getNameFromUUID(uuid, context.getSource());
             if (displayName != null) {
-                context.getSource().sendMessage(Text.literal(displayName + ": " + lives));
+                context.getSource().sendMessage(Text.literal("- " + displayName + ": " + lives));
             }
         });
 

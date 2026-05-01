@@ -42,11 +42,21 @@ public abstract class GraceHudMixin {
         } else if (harpyLivesComponent.graceTime > Date.from(Instant.now()).getTime() && !client.options.hudHidden) {
             int drawY = context.getScaledWindowHeight();
 
-            long time = harpyLivesComponent.graceTime - Date.from(Instant.now()).getTime();
-            time = time / 1000;
-            time = time / 60;
+            long seconds = (harpyLivesComponent.graceTime - Date.from(Instant.now()).getTime()) / 1000;
+            long minutes = seconds / 60;
+            long hours = seconds / 3600;
+            long days = seconds / 86400;
 
-            Text line = Text.literal("Grace Time: " +  time + " minutes");
+            Text line;
+            if (minutes <= 1) {
+                line = Text.literal("Grace Time: " + seconds + " seconds");
+            } else if (hours <= 1) {
+                line = Text.literal("Grace Time: " + minutes + " minutes");
+            } else if (days <= 1) {
+                line = Text.literal("Grace Time: " + hours + " hours, " + (minutes - (60 * hours))  + " minutes");
+            } else {
+                line = Text.literal("Grace Time: " + days + " days, " + (hours - (24 * days))  + " hours");
+            }
 
             drawY -= getTextRenderer().getWrappedLinesHeight(line, 999999);
             context.drawTextWithShadow(getTextRenderer(), line, context.getScaledWindowWidth() - getTextRenderer().getWidth(line), drawY, Colors.GREEN);

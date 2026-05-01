@@ -20,24 +20,23 @@ public abstract class PlayerDisplayNameMixin {
     @Inject(method = "getDisplayName", at = @At("RETURN"), cancellable = true)
     public void harpysmp$changeDisplayName(CallbackInfoReturnable<Text> cir) {
         Text name = cir.getReturnValue();
-        if (HarpyLivesComponent.KEY.get(((PlayerEntity)(Object)this)).nickname != null) {
-            name = Text.literal(HarpyLivesComponent.KEY.get(((PlayerEntity)(Object)this)).nickname);
+        if (HarpyLivesComponent.KEY.get(this).nickname != null) {
+            name = Text.literal(HarpyLivesComponent.KEY.get(this).nickname);
             name = name.copy().fillStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Text.of(getGameProfile().getName()))));
         }
 
-        cir.setReturnValue(name.copy().withColor(HarpySMP.colorFromLives(HarpyLivesComponent.KEY.get((PlayerEntity)(Object)this).lives).getRGB()));
+        cir.setReturnValue(name.copy().withColor(HarpySMP.colorFromLives(HarpyLivesComponent.KEY.get(this).lives).getRGB()));
         cir.cancel();
     }
     @Inject(method = "getName", at = @At("RETURN"), cancellable = true)
     public void harpysmp$changeName(CallbackInfoReturnable<Text> cir) {
-
         Text name = cir.getReturnValue();
-        if (HarpyLivesComponent.KEY.get(((PlayerEntity)(Object)this)).nickname != null) {
-            name = Text.of(HarpyLivesComponent.KEY.get(((PlayerEntity)(Object)this)).nickname);
+        if (HarpyLivesComponent.KEY.get(this).nickname != null) {
+            name = Text.of(HarpyLivesComponent.KEY.get(this).nickname);
             name = name.copy().fillStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,  Text.of(getGameProfile().getName()))));
         }
 
-        cir.setReturnValue(name.copy().withColor(HarpySMP.colorFromLives(HarpyLivesComponent.KEY.get((PlayerEntity)(Object)this).lives).getRGB()));
+        cir.setReturnValue(name.copy().withColor(HarpySMP.colorFromLives(HarpyLivesComponent.KEY.get(this).lives).getRGB()));
         cir.cancel();
     }
 }

@@ -3,6 +3,8 @@ package org.agmas.harpysmp;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -24,59 +26,57 @@ public class HarpySMP implements ModInitializer {
     public static String MOD_ID = "harpysmp";
     @Override
     public void onInitialize() {
-
         CommandRegistrationCallback.EVENT.register(Commands::register);
+        ServerLivingEntityEvents.AFTER_DEATH.register(HarpySMP::harpyDeath);
+    }
 
-        ServerLivingEntityEvents.AFTER_DEATH.register(((serverPlayerEntity, damageSource) -> {
-            if (!(serverPlayerEntity instanceof ServerPlayerEntity)) return;
-            if (serverPlayerEntity.getAttacker() instanceof PlayerEntity killer && HarpyLivesComponent.KEY.get(serverPlayerEntity).lives > 0) {
-                if (HoloPlayerComponent.KEY.get(serverPlayerEntity).inHoloMode) return;
-                if (serverPlayerEntity instanceof FakestPlayer) return;
-                if (killer.getUuid() == serverPlayerEntity.getUuid()) return; // doesn't remove life if you kill urself somehow
+    public static void harpyDeath(LivingEntity serverPlayerEntity, DamageSource damageSource) {
+        if (!(serverPlayerEntity instanceof ServerPlayerEntity)) return;
+        if (serverPlayerEntity.getAttacker() instanceof PlayerEntity killer && HarpyLivesComponent.KEY.get(serverPlayerEntity).lives > 0) {
+            if (HoloPlayerComponent.KEY.get(serverPlayerEntity).inHoloMode) return;
+            if (serverPlayerEntity instanceof FakestPlayer) return;
+            if (killer.getUuid() == serverPlayerEntity.getUuid()) return;
 
-                HarpyLivesComponent victimComponent = HarpyLivesComponent.KEY.get(serverPlayerEntity);
+            HarpyLivesComponent victimComponent = HarpyLivesComponent.KEY.get(serverPlayerEntity);
 
-                if (victimComponent.graceTime > Date.from(Instant.now()).getTime()) {
-
-                    long time = victimComponent.graceTime - Date.from(Instant.now()).getTime();
-                    time = time / 1000;
-                    time = time / 60;
-                    serverPlayerEntity.getServer().getPlayerManager().broadcast(serverPlayerEntity.getDisplayName().copy().append(Text.literal( "'s death did not count due to their grace period of ").append(Text.literal(time+""))).append(" minutes."), false);
-                    return;
-                }
-                HarpyLivesComponent attackerComponent = HarpyLivesComponent.KEY.get(killer);
-                if (attackerComponent.graceTime > Date.from(Instant.now()).getTime()) {
-
-                    long time = attackerComponent.graceTime - Date.from(Instant.now()).getTime();
-                    time = time / 1000;
-                    time = time / 60;
-                    serverPlayerEntity.getServer().getPlayerManager().broadcast(serverPlayerEntity.getDisplayName().copy().append(Text.literal( "'s death did not count due to their killer's grace period of ").append(Text.literal(time+""))).append(" minutes."), false);
-                    return;
-                }
-                victimComponent.lives--;
-                victimComponent.graceTime = Date.from(Instant.now().plus(1, ChronoUnit.HOURS)).getTime();
-                victimComponent.sync();
-
-                if (killer.isPlayer()) {
-                    attackerComponent.addRefundableLife(serverPlayerEntity.getUuid());
-                }
-
-                if (victimComponent.lives == 0) {
-                    for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
-                        player.playSoundToPlayer(SoundEvents.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1, 1);
-                    }
-                } else {
-                    for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
-                        player.playSoundToPlayer(SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.MASTER, 1, 1);
-                    }
-                }
-                for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
-                    player.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, (ServerPlayerEntity) serverPlayerEntity));
-                }
+            if (victimComponent.graceTime > Date.from(Instant.now()).getTime()) {
+                long time = victimComponent.graceTime - Date.from(Instant.now()).getTime();
+                time = time / 1000;
+                time = time / 60;
+                serverPlayerEntity.getServer().getPlayerManager().broadcast(serverPlayerEntity.getDisplayName().copy().append(Text.literal( "'s death did not count due to their grace period of ").append(Text.literal(time+""))).append(" minutes."), false);
                 return;
             }
-            return;
-        }));
+
+            HarpyLivesComponent attackerComponent = HarpyLivesComponent.KEY.get(killer);
+            if (attackerComponent.graceTime > Date.from(Instant.now()).getTime()) {
+
+                long time = attackerComponent.graceTime - Date.from(Instant.now()).getTime();
+                time = time / 1000;
+                time = time / 60;
+                serverPlayerEntity.getServer().getPlayerManager().broadcast(serverPlayerEntity.getDisplayName().copy().append(Text.literal( "'s death did not count due to their killer's grace period of ").append(Text.literal(time+""))).append(" minutes."), false);
+                return;
+            }
+            victimComponent.lives--;
+            victimComponent.graceTime = Date.from(Instant.now().plus(1, ChronoUnit.HOURS)).getTime();
+            victimComponent.sync();
+
+            if (killer.isPlayer()) {
+                attackerComponent.addRefundableLife(serverPlayerEntity.getUuid());
+            }
+
+            if (victimComponent.lives == 0) {
+                for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
+                    player.playSoundToPlayer(SoundEvents.ENTITY_WITHER_SPAWN, SoundCategory.MASTER, 1, 1);
+                }
+            } else {
+                for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
+                    player.playSoundToPlayer(SoundEvents.ENTITY_LIGHTNING_BOLT_THUNDER, SoundCategory.MASTER, 1, 1);
+                }
+            }
+            for (ServerPlayerEntity player : serverPlayerEntity.getServer().getPlayerManager().getPlayerList()) {
+                player.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, (ServerPlayerEntity) serverPlayerEntity));
+            }
+        }
     }
 
     public static Color colorFromLives(int lives) {
