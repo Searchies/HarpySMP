@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(PlayerEntity.class)
+@Mixin(value = PlayerEntity.class, priority = 1001)
 public abstract class PlayerDisplayNameMixin {
     @Shadow public abstract GameProfile getGameProfile();
 
@@ -28,6 +28,7 @@ public abstract class PlayerDisplayNameMixin {
         cir.setReturnValue(name.copy().withColor(HarpySMP.colorFromLives(HarpyLivesComponent.KEY.get(this).lives).getRGB()));
         cir.cancel();
     }
+
     @Inject(method = "getName", at = @At("RETURN"), cancellable = true)
     public void harpysmp$changeName(CallbackInfoReturnable<Text> cir) {
         Text name = cir.getReturnValue();
